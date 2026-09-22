@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: civicsense-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: civicsense
+      MYSQL_ROOT_PASSWORD: civicsense_root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend.Dockerfile
+    container_name: civicsense-backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=civicsense
+      - DB_USER=root
+      - DB_PASSWORD=civicsense_root
+      - DB_SYNC=true
+      - JWT_SECRET=civicsense_dev_secret
+      - JWT_EXPIRE=7d
+      - AI_SERVICE_URL=http://ai-service:8000
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mysql
+      - ai-service
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: ../docker/ai-service.Dockerfile
+    container_name: civicsense-ai
+    restart: unless-stopped
+    environment:
+      - DEBUG=true
+      - PORT=8000
+      - MYSQL_URI=mysql://root:civicsense_root@mysql:3306/civicsense
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    container_name: civicsense-frontend
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:

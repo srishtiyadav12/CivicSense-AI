@@ -1,0 +1,5 @@
+@tailwind base;
+/* stylelint-disable at-rule-no-unknown */
+@tailwind components;
+@tailwind utilities;
+/* stylelint-enable at-rule-no-unknown */
